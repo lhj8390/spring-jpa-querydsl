@@ -7,19 +7,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
-@NoArgsConstructor
-public class UserResponseDTO {
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class UserSearchRequestDTO {
 
-    private Long id;
     private String name;
     private UserType type;
-    private int coin;
 
     @Builder
-    public UserResponseDTO(Long id, String name, UserType type, int coin) {
-        this.id = id;
+    public UserSearchRequestDTO(String name, UserType type) {
         this.name = name;
         this.type = type;
-        this.coin = coin;
     }
 }

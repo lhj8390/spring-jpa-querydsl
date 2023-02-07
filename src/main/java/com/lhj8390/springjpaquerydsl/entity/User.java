@@ -1,9 +1,7 @@
 package com.lhj8390.springjpaquerydsl.entity;
 
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import org.springframework.data.domain.Persistable;
 
 import javax.persistence.*;
 
@@ -11,7 +9,7 @@ import javax.persistence.*;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "users")
-public class User {
+public class User extends BaseEntity implements Persistable<Long> {
 
     @Id
     @GeneratedValue
@@ -24,4 +22,19 @@ public class User {
     private UserType type;
 
     private int coin;
+
+    @Builder
+    public User(Long id, String username, UserType type, int coin) {
+        this.id = id;
+        this.username = username;
+        this.type = type;
+        this.coin = coin;
+    }
+
+    @Override
+    public boolean isNew() {
+        // save method 수행 시 select query 로 새로운 데이터인지 확인
+        // select query 차단 위해 Persistable interface 구현
+        return getCreatedDate() == null;
+    }
 }
