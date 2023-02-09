@@ -18,6 +18,7 @@ import javax.transaction.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -35,14 +36,16 @@ class UserServiceTest {
     void 유저_검색_테스트() {
         UserType[] userTypes = { UserType.WARRIOR, UserType.MAGE, UserType.ROGUE };
         List<User> userList = new ArrayList<>();
-        for (int i = 0; i < 100; i++) {
-            User user = User.builder()
-                    .username("test" + i)
-                    .coin(i * 100)
-                    .type(userTypes[i % 3])
-                    .build();
-            userList.add(user);
-        }
+
+        IntStream.rangeClosed(0, 100)
+            .forEach(i -> {
+                User user = User.builder()
+                        .username("test" + i)
+                        .coin(i * 100)
+                        .type(userTypes[i % 3])
+                        .build();
+                userList.add(user);
+            });
         userRepository.saveAll(userList);
         PageRequest pageRequest = PageRequest.of(0, 5);
 

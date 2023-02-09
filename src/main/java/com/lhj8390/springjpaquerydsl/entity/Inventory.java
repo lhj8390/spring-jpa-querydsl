@@ -1,15 +1,13 @@
 package com.lhj8390.springjpaquerydsl.entity;
 
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import javax.persistence.*;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@ToString
 public class Inventory {
 
     @Id
@@ -27,5 +25,16 @@ public class Inventory {
 
     private int amount;
 
+    @Builder
+    public Inventory(Long id, Item item, User user, int amount) {
+        this.id = id;
+        this.item = item;
+        this.user = user;
+        this.amount = amount;
+    }
+
+    public void changeAmount(int amount) {
+        this.amount = amount;
+    }
 
 }

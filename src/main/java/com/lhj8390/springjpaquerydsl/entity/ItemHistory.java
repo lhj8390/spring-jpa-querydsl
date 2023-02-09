@@ -1,9 +1,6 @@
 package com.lhj8390.springjpaquerydsl.entity;
 
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import javax.persistence.*;
 
@@ -20,4 +17,22 @@ public class ItemHistory extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "item_id")
+    private Item item;
+
+    private int amount;
+
+    @Enumerated(EnumType.STRING)
+    private ItemHistoryType type;
+
+    @Builder
+    public ItemHistory(Long id, User user, Item item, int amount, ItemHistoryType type) {
+        this.id = id;
+        this.user = user;
+        this.item = item;
+        this.amount = amount;
+        this.type = type;
+    }
 }

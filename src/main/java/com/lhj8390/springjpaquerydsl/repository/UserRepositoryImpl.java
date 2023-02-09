@@ -42,14 +42,14 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
                 .limit(pageable.getPageSize())
                 .fetch();
 
-        JPAQuery<User> countQuery = queryFactory.select(user)
+        JPAQuery<Long> countQuery = queryFactory.select(user.count())
                                                 .from(user)
                                                 .where(
                                                         nameLike(dto.getName()),
                                                         typeEq(dto.getType())
                                                 );
 
-        return PageableExecutionUtils.getPage(content, pageable, () -> countQuery.fetch().size());
+        return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchOne);
     }
 
     private BooleanExpression nameLike(String name) {

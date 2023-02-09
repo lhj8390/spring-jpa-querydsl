@@ -9,6 +9,7 @@ import javax.persistence.*;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "users")
+@ToString
 public class User extends BaseEntity implements Persistable<Long> {
 
     @Id
