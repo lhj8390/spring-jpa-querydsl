@@ -1,9 +1,6 @@
 package com.lhj8390.springjpaquerydsl.service;
 
-import com.lhj8390.springjpaquerydsl.dto.item.InventoryExchangeRequestDTO;
-import com.lhj8390.springjpaquerydsl.dto.item.InventoryRemoveRequestDTO;
-import com.lhj8390.springjpaquerydsl.dto.item.InventoryResponseDTO;
-import com.lhj8390.springjpaquerydsl.dto.item.InventorySaveRequestDTO;
+import com.lhj8390.springjpaquerydsl.dto.item.*;
 import com.lhj8390.springjpaquerydsl.entity.*;
 import com.lhj8390.springjpaquerydsl.repository.InventoryRepository;
 import com.lhj8390.springjpaquerydsl.repository.ItemHistoryRepository;
@@ -232,6 +229,64 @@ class ItemServiceTest {
 
         assertEquals(exchangedFrom.getAmount(), 1);
         assertEquals(exchangedTo.getAmount(), 1);
+    }
+
+    @Test
+    void 장착_테스트() {
+        Inventory inventory = inventoryRepository.findAll().get(0);
+
+        EquipRequestDTO dto = EquipRequestDTO.builder()
+                .itemId(inventory.getItem().getId())
+                .userId(inventory.getUser().getId())
+                .build();
+
+        itemService.equip(dto);
+
+        assertEquals(inventory.getUser().getEquipment(), dto.getItemId());
+    }
+
+    @Test
+    void 장착_타입_제한() {
+        User user = User.builder()
+                .type(UserType.WARRIOR)
+                .build();
+
+        Item item = Item.builder()
+                .type(ItemType.MAGE)
+                .build();
+
+        Inventory inventory = Inventory.builder()
+                .user(user)
+                .item(item)
+                .build();
+
+        userRepository.save(user);
+        itemRepository.save(item);
+        inventoryRepository.save(inventory);
+        EquipRequestDTO dto = EquipRequestDTO.builder()
+                .itemId(item.getId())
+                .userId(user.getId())
+                .build();
+
+        Throwable exception = assertThrows(IllegalStateException.class, () ->
+                itemService.equip(dto)
+        );
+
+        assertEquals("타입이 맞지 않아 장착할 수 없습니다.", exception.getMessage());
+    }
+
+    @Test
+    void 장착_인벤토리에_없는_아이템() {
+        EquipRequestDTO dto = EquipRequestDTO.builder()
+                .itemId(0L)
+                .userId(0L)
+                .build();
+
+        Throwable exception = assertThrows(IllegalStateException.class, () ->
+                itemService.equip(dto)
+        );
+
+        assertEquals("인벤토리에 있는 아이템이 아닙니다.", exception.getMessage());
     }
 
 }

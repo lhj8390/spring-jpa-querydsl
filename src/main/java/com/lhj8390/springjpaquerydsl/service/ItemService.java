@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -78,9 +79,7 @@ public class ItemService {
         Inventory inventory = isValidInventory(dto.getInventoryId());
         int diff = inventory.getAmount() - dto.getAmount();
 
-        if (diff < 0) throw new IllegalStateException("수량이 부족합니다.");
-
-        if (diff > 0) {
+        if (isAmountPositive(diff)) {
             inventory.changeAmount(diff);
         } else {
             inventoryRepository.delete(inventory);
@@ -99,15 +98,13 @@ public class ItemService {
     public void exchangeItem(InventoryExchangeRequestDTO dto) {
         Item item = isValidItem(dto.getItemId());
         List<User> userList = isValidUser(dto.getFromUserId(), dto.getToUserId());
-        User fromUser = userList.stream().filter(
-                                u -> Objects.equals(u.getId(), dto.getFromUserId())
-                        ).findFirst().orElse(null);
-        User toUser = userList.stream().filter(
-                                u -> Objects.equals(u.getId(), dto.getToUserId())
-                        ).findFirst().orElse(null);
 
-        assert fromUser != null;
-        assert toUser != null;
+        // id 키값으로 User 를 찾는 map 생성
+        Map<Long, User> userMap = userList.stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+
+        User fromUser = userMap.get(dto.getFromUserId());
+        User toUser = userMap.get(dto.getToUserId());
 
         Inventory fromInven = inventoryRepository.findByUserIdAndItemId(fromUser.getId(), item.getId())
                 .orElseThrow(() -> new IllegalStateException("인벤토리가 없습니다."));
@@ -117,9 +114,7 @@ public class ItemService {
 
         int diff = fromInven.getAmount() - dto.getAmount();
 
-        if (diff < 0) throw new IllegalStateException("수량이 부족합니다.");
-
-        if (diff > 0) {
+        if (isAmountPositive(diff)) {
             fromInven.changeAmount(diff);
         } else {
             inventoryRepository.delete(fromInven);
@@ -134,15 +129,29 @@ public class ItemService {
                                                         .amount(dto.getAmount())
                                                         .build();
 
-            inventoryRepository.save(saveDTO.toEntity());
+            toInven = inventoryRepository.save(saveDTO.toEntity());
         }
 
         addHistory(fromInven, ItemHistoryType.EXCHANGE);
         addHistory(toInven, ItemHistoryType.EXCHANGE);
     }
 
-    public void equip() {
-        // TODO: 아이템 장착 - 타입 및 인벤토리 아이템 한정
+    /**
+     * 아이템 장착 - 타입 및 인벤토리 아이템 한정
+     * @param dto EquipRequestDTO
+     * @exception IllegalStateException 인벤토리에 있는 아이템이 아닙니다. 타입이 맞지 않아 장착할 수 없습니다.
+     */
+    @Transactional
+    public void equip(EquipRequestDTO dto) {
+        Inventory inventory = inventoryRepository.findByUserIdAndItemId(dto.getUserId(), dto.getItemId())
+                .orElseThrow(() -> new IllegalStateException("인벤토리에 있는 아이템이 아닙니다."));
+        User user = inventory.getUser();
+        Item item = inventory.getItem();
+
+        if (!item.getType().name().equals(user.getType().name())) {
+            throw new IllegalStateException("타입이 맞지 않아 장착할 수 없습니다.");
+        }
+        user.equip(item.getId());
     }
 
     /**
@@ -163,7 +172,11 @@ public class ItemService {
      * @exception IllegalArgumentException 해당 user 가 없습니다.
      */
     private List<User> isValidUser(Long ...ids) {
-        return userRepository.findByIdIn(Arrays.asList(ids));
+        List<User> userList = userRepository.findByIdIn(Arrays.asList(ids));
+        if (userList.size() != ids.length) {
+            throw new IllegalArgumentException("해당 user 가 없습니다.");
+        }
+        return userList;
     }
 
     /**
@@ -191,4 +204,14 @@ public class ItemService {
         itemHistoryRepository.save(historyDTO.toEntity());
     }
 
+    /**
+     * 두 객체의 amount 비교 값이 양수인지 체크
+     * @param diff 두 객체의 amount 비교 값
+     * @return boolean
+     * @exception IllegalStateException 수량이 부족합니다.
+     */
+    private boolean isAmountPositive(int diff) {
+        if (diff < 0) throw new IllegalStateException("수량이 부족합니다.");
+        return diff > 0;
+    }
 }

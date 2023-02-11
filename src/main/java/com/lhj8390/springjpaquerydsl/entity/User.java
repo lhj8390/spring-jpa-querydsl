@@ -24,12 +24,15 @@ public class User extends BaseEntity implements Persistable<Long> {
 
     private int coin;
 
+    private Long equipment;
+
     @Builder
-    public User(Long id, String username, UserType type, int coin) {
+    public User(Long id, String username, UserType type, int coin, Long equipment) {
         this.id = id;
         this.username = username;
         this.type = type;
         this.coin = coin;
+        this.equipment = equipment;
     }
 
     @Override
@@ -38,4 +41,9 @@ public class User extends BaseEntity implements Persistable<Long> {
         // select query 차단 위해 Persistable interface 구현
         return getCreatedDate() == null;
     }
+
+    public void equip(Long equipment) {
+        this.equipment = equipment;
+    }
+
 }
