@@ -10,7 +10,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
@@ -36,6 +37,8 @@ class ItemServiceTest {
     @Autowired
     ItemService itemService;
     @Autowired
+    HistoryService historyService;
+    @Autowired
     EntityManager entityManager;
 
     @BeforeEach
@@ -43,6 +46,7 @@ class ItemServiceTest {
         List<Inventory> inventoryList = new ArrayList<>();
         List<User> userList = new ArrayList<>();
         List<Item> itemList = new ArrayList<>();
+        List<ItemHistory> historyList = new ArrayList<>();
 
         IntStream.range(0, 200)
                 .forEach(i -> {
@@ -63,14 +67,23 @@ class ItemServiceTest {
                             .amount(i + 1)
                             .build();
 
+                    ItemHistory history = ItemHistory.builder()
+                            .item(item)
+                            .user(user)
+                            .amount(5)
+                            .type(ItemHistoryType.values()[i % 3])
+                            .build();
+
                     userList.add(user);
                     itemList.add(item);
                     inventoryList.add(inventory);
+                    historyList.add(history);
                 });
 
         userRepository.saveAll(userList);
         itemRepository.saveAll(itemList);
         inventoryRepository.saveAll(inventoryList);
+        itemHistoryRepository.saveAll(historyList);
 
         entityManager.flush();
         entityManager.clear();
@@ -79,7 +92,8 @@ class ItemServiceTest {
     @Test
     void 인벤토리_테스트() {
 
-        List<InventoryResponseDTO> dtoList = itemService.getInventory(1L);
+        User user = userRepository.findAll().get(0);
+        List<InventoryResponseDTO> dtoList = itemService.getInventory(user.getId());
 
         assertEquals(dtoList.size(), 1);
         assertEquals(dtoList.get(0).getAmount(), 1);
@@ -172,8 +186,8 @@ class ItemServiceTest {
                 .amount(1)
                 .build();
 
-        itemService.removeItem(notDeleted);
         itemService.removeItem(deleted);
+        itemService.removeItem(notDeleted);
 
         // 인벤토리 테스트
         Inventory deletedResult = inventoryRepository.findById(inventory.getId()).orElse(null);
@@ -185,7 +199,7 @@ class ItemServiceTest {
         assertEquals(notDeletedResult.getItem(), inventory2.getItem());
 
         // 히스토리 테스트
-        ItemHistory history = itemHistoryRepository.findAll().get(0);
+        ItemHistory history = itemHistoryRepository.findAll().get(201);
         assertEquals(history.getType(), ItemHistoryType.REMOVE);
         assertEquals(history.getAmount(), 1);
         assertEquals(history.getItem().getId(), inventory2.getItem().getId());
@@ -287,6 +301,58 @@ class ItemServiceTest {
         );
 
         assertEquals("인벤토리에 있는 아이템이 아닙니다.", exception.getMessage());
+    }
+
+    @Test
+    void 아이템_히스토리_전체_검색() {
+        ItemHistorySearchDTO dto = ItemHistorySearchDTO.builder()
+                .build();
+        PageRequest pageRequest = PageRequest.of(0, 5);
+        Page<ItemHistoryResponseDTO> list = historyService.getAllItemHistory(dto, pageRequest);
+
+        assertEquals(list.getContent().size(), 5);
+    }
+
+    @Test
+    void 아이템_히스토리_이름_검색() {
+        ItemHistorySearchDTO findItem = ItemHistorySearchDTO.builder()
+                .itemName("item0")
+                .build();
+        ItemHistorySearchDTO findUser = ItemHistorySearchDTO.builder()
+                .userName("test0")
+                .build();
+        PageRequest pageRequest = PageRequest.of(0, 5);
+        Page<ItemHistoryResponseDTO> findItemList = historyService.getAllItemHistory(findItem, pageRequest);
+        Page<ItemHistoryResponseDTO> findUserList = historyService.getAllItemHistory(findUser, pageRequest);
+
+        assertEquals(findItemList.getContent().size(), 1);
+        assertEquals(findItemList.getContent().get(0).getItemName(), "item0");
+
+        assertEquals(findUserList.getContent().size(), 1);
+        assertEquals(findUserList.getContent().get(0).getUsername(), "test0");
+    }
+
+    @Test
+    void 아이템_히스토리_타입_검색() {
+        ItemHistorySearchDTO findItemType = ItemHistorySearchDTO.builder()
+                .itemType(ItemType.WARRIOR)
+                .build();
+        ItemHistorySearchDTO findHistoryType = ItemHistorySearchDTO.builder()
+                .historyType(ItemHistoryType.INSERT)
+                .build();
+
+        PageRequest pageRequest = PageRequest.of(0, 5);
+        Page<ItemHistoryResponseDTO> findItemTypeList = historyService.getAllItemHistory(findItemType, pageRequest);
+        Page<ItemHistoryResponseDTO> findHistoryTypeList = historyService.getAllItemHistory(findHistoryType, pageRequest);
+
+        assertEquals(findItemTypeList.getContent().size(), 5);
+        assertEquals(findItemTypeList.getTotalElements(), 200);
+        assertEquals(findItemTypeList.getContent().get(0).getType(), ItemType.WARRIOR);
+
+        assertEquals(findHistoryTypeList.getSize(), 5);
+        assertEquals(findHistoryTypeList.getTotalElements(), 67);
+        assertEquals(findHistoryTypeList.getContent().get(0).getDetail(), "구입");
+
     }
 
 }

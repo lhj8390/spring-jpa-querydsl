@@ -2,7 +2,6 @@ package com.lhj8390.springjpaquerydsl.repository;
 
 import com.lhj8390.springjpaquerydsl.dto.user.UserResponseDTO;
 import com.lhj8390.springjpaquerydsl.dto.user.UserSearchRequestDTO;
-import com.lhj8390.springjpaquerydsl.entity.User;
 import com.lhj8390.springjpaquerydsl.entity.UserType;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -11,9 +10,9 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.support.QuerydslRepositorySupport;
 import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 
@@ -53,7 +52,7 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
     }
 
     private BooleanExpression nameLike(String name) {
-        return name != null ? user.username.contains(name): null;
+        return StringUtils.hasText(name) ? user.username.contains(name): null;
     }
 
     private BooleanExpression typeEq(UserType type) {
